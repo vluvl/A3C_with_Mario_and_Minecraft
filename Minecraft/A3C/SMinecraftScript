@@ -1,0 +1,23 @@
+#!/bin/bash
+
+#SBATCH --time=3-00:00:00
+#SBATCH --cpus-per-task=8
+#SBATCH --ntasks=1
+#SBATCH --mem-per-cpu=10GB
+#SBATCH --job-name=A3C-Minecraft-RL-longer-test
+#SBATCH --output=job-%j.log
+#SBATCH --partition=gpu
+#SBATCH --gres=gpu:v100:1
+
+module purge
+module load Python/3.8.16-GCCcore-11.2.0
+module load Java/1.8.0_292-OpenJDK
+
+which python
+which java
+
+source $HOME/Desktop/MineRL/Safe-RL-in-Minecraft/tf5/bin/activate
+
+xvfb-run -a python -u $HOME/Desktop/MineRL/Safe-RL-in-Minecraft/A3C/train.py
+
+deactivate

@@ -1,0 +1,3 @@
+MinecraftVenv\lib\python3.10\site-packages\minerl\env\comms.py
+MinecraftVenv\lib\python3.10\site-packages\minerl\env\malmo.py
+MinecraftVenv\lib\python3.10\site-packages\minerl\env\_multiagent.py

@@ -1,0 +1,4 @@
+main.py - simple test program to check if minerl works
+playing_with_minerl.py - test programs which allows control over the agent movements
+StabelBaselines.py and StabelBaselines2.py - examples from the internet using stable baselines with minerl. Unmaintained and rough, depending on two different versions of stable baselines
+wrapper.py - helper class that modifies the output of minerl to work with stable baselines

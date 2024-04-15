@@ -1,0 +1,11 @@
+Move the custom env into:
+->minerl/herobrine/env_spaces
+also add the env to the file:
+->minerl/herobrine/envs.py
+
+
+
+for obtain_specs.py:
+    replace the file from minerl with the file from this folder
+    replace here:
+        minerl/herobraine/env_specs

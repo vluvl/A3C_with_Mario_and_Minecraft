@@ -1,0 +1,3 @@
+helperThings.py - wrapper functions and other function used in the SB files
+SB2 and SB3 - playground files used to test stable baselines with minerl and experiment with different settings and environments. SB3 is the more advanced and developed/maintained version
+TestModel.py - used to load and test a model. Make sure to modify the path within the code
