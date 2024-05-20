@@ -10,9 +10,12 @@ def load_csv(filename):
 def get_rolling_data(filename, window_size):
     csv_data = load_csv(filename)
     rewards_series = pd.Series(csv_data['Value'])
+    timesteps = pd.Series(csv_data['Step'])
     data = {'mean': rewards_series.rolling(window_size).mean(),
             'std' : rewards_series.rolling(window_size).std(),
-            'var' : rewards_series.rolling(window_size).var()}
+            'var' : rewards_series.rolling(window_size).var(),
+            'plain': rewards_series,
+            'steps': timesteps}
     return data
 
 def plot_mean_and_variance(data, savename):
@@ -21,8 +24,8 @@ def plot_mean_and_variance(data, savename):
     # Plot the rolling mean on the left y-axis
     color = 'tab:blue'
     ax1.set_xlabel('Timestep')
-    ax1.set_ylabel('Rolling Mean', color=color)
-    ax1.plot(data['mean'], color=color, label='Mean')
+    ax1.set_ylabel('Rolling Mean Reward', color=color)
+    ax1.plot(data['steps'], data['mean'], color=color, label='Mean')
     ax1.tick_params(axis='y', labelcolor=color)
 
     # Create a second y-axis that shares the same x-axis
@@ -43,34 +46,40 @@ def plot_mean_and_variance(data, savename):
     plt.show()
 
 def plot_mean_and_deviation(data, savename):
-    x = np.arange(len(data['mean'])) # x axis
-
     fig, ax = plt.subplots(figsize=(10, 6))
     #plt.style.use('ggplot')  # Change/Remove This If you Want
 
     #plot lines:
-    ax.plot(x, data['mean'], alpha=1, color='red', label='Mean', linewidth=1.0)
-    ax.fill_between(x, data['mean'] - 2 * data['std'],
+    ax.plot(data['steps'], data['mean'], alpha=1, color='red', label='Mean', linewidth=1.0)
+    ax.fill_between(data['steps'], data['mean'] - 2 * data['std'],
                     data['mean'] + 2 * data['std'], color='#fa0000', alpha=0.2)
 
     #plot setting:
     plt.grid()
     ax.legend(loc='lower right')
-    ax.set_ylabel("Reward")
+    ax.set_ylabel("Mean Reward")
     ax.set_xlabel("Recorded Timestep")
     plt.savefig(savename + "MeanAndDeviation.png")
     plt.show()
 
 def plot_mean(data, savename):
-    x = np.arange(len(data['mean']))  # x axis
-
     fig, ax = plt.subplots(figsize=(10, 6))
-    ax.plot(x, data['mean'], alpha=1, color='red', label='Mean', linewidth=1.0)
+    ax.plot(data['steps'], data['mean'], alpha=1, color='red', label='Mean', linewidth=1.0)
     plt.grid()
     ax.legend(loc='lower right')
-    ax.set_ylabel("Reward")
+    ax.set_ylabel("Mean Reward")
     ax.set_xlabel("Window Timestep")
     plt.savefig(savename + "Mean.png")
+    plt.show()
+
+def plot_plain_data(data, savename):
+    fig, ax = plt.subplots(figsize=(10, 6))
+    ax.plot(data['steps'], data['plain'], alpha=1, color='red', label='Completions', linewidth=1.0)
+    plt.grid()
+    ax.legend(loc='lower right')
+    ax.set_ylabel("Completions")
+    ax.set_xlabel("Timestep")
+    plt.savefig(savename + "Plain.png")
     plt.show()
 
 def main():
@@ -83,6 +92,7 @@ def main():
     plot_mean_and_deviation(data, savename)
     plot_mean_and_variance(data, savename)
     plot_mean(data, savename)
+    plot_plain_data(data, savename)
 
 
 if __name__ == "__main__":
