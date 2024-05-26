@@ -34,7 +34,7 @@ def plot_mean_and_variance(data, savename):
     # Plot the rolling variance on the right y-axis
     color = 'tab:red'
     ax2.set_ylabel('Rolling Variance', color=color)
-    ax2.plot(data['var'], color=color, label='Variance')
+    ax2.plot(data['steps'],data['var'], color=color, label='Variance')
     ax2.tick_params(axis='y', labelcolor=color)
 
     ax1.legend(loc='lower right')
