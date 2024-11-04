@@ -1,7 +1,7 @@
 """
 @author: Viet Nguyen <nhviet1009@gmail.com>
 """
-
+import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
@@ -15,7 +15,7 @@ class ActorCritic(nn.Module):
         self.conv4 = nn.Conv2d(32, 32, 3, stride=2, padding=1)
         self.lstm = nn.LSTMCell(32 * 6 * 6, 512)
         self.critic_linear = nn.Linear(512, 1)
-        self.actor_linear = nn.Linear(512, num_actions) #add another of change to softmax
+        self.actor_linear = nn.Linear(512, num_actions)
         self._initialize_weights()
 
     def _initialize_weights(self):
@@ -28,7 +28,11 @@ class ActorCritic(nn.Module):
                 nn.init.constant_(module.bias_ih, 0)
                 nn.init.constant_(module.bias_hh, 0)
 
-    def forward(self, x, hx, cx):
+    def forward(self, x):
+        hx = torch.zeros((2, 512), dtype=torch.float)
+        cx = torch.zeros((2, 512), dtype=torch.float)
+        hx = hx.cuda()
+        cx = cx.cuda()
         x = F.relu(self.conv1(x))
         x = F.relu(self.conv2(x))
         x = F.relu(self.conv3(x))

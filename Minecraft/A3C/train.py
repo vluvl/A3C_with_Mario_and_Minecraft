@@ -24,14 +24,15 @@ def get_args():
     parser.add_argument("--num_local_steps", type=int, default=100)
     parser.add_argument("--num_global_steps", type=int, default=100 * 25 * 20) # was 5e6, 100 * 25 * 15
     parser.add_argument("--num_process_restarts", type=int, default=60)
-    parser.add_argument("--num_processes", type=int, default=4) # was 6
-    parser.add_argument("--save_interval", type=int, default=100, help="Number of episodes between savings")
-    parser.add_argument("--max_actions", type=int, default=200, help="Maximum repetition steps in test phase")
+    parser.add_argument("--num_processes", type=int, default=1) # was 6
+    parser.add_argument("--save_interval", type=int, default=200, help="Number of episodes between savings")
+    parser.add_argument("--max_actions", type=int, default=1000, help="Maximum repetition steps in test phase")
     parser.add_argument("--log_path", type=str, default="tensorboard/MineRLFINAL")
     parser.add_argument("--saved_path", type=str, default="trained_models")
-    parser.add_argument("--load_from_previous_stage", type=bool, default=False,
+    parser.add_argument("--load_from_previous_stage", type=bool, default=True,
                         help="Load weight from previous trained stage")
-    parser.add_argument("--use_gpu", type=bool, default=True)
+    parser.add_argument("--checkpoint", type=str, default="15")
+    parser.add_argument("--use_gpu", type=bool, default=False)
     parser.add_argument("--envName", type=str, default="MineRLObtainDiamondShovel-v0")
     args = parser.parse_args()
     return args
@@ -50,23 +51,19 @@ def train(opt):
     if opt.use_gpu:
         global_model.cuda()
     global_model.share_memory()
-    if opt.load_from_previous_stage:
-        if opt.stage == 1:
-            previous_world = opt.world - 1
-            previous_stage = 4
-        else:
-            previous_world = opt.world
-            previous_stage = opt.stage - 1
-        file_ = "{}/a3c_super_mario_bros_{}_{}".format(opt.saved_path, previous_world, previous_stage)
-        if os.path.isfile(file_):
-            global_model.load_state_dict(torch.load(file_))
-
     optimizer = GlobalAdam(global_model.parameters(), lr=opt.lr)
+    if True: #opt.load_from_previous_stage:
+        file_ = "{}/MineRLParams_check{}".format(opt.saved_path, opt.checkpoint)
+        if os.path.isfile(file_):
+            global_model.load_state_dict(torch.load(file_, weights_only=True)['model_state_dict'])
+            optimizer.load_state_dict(torch.load(file_, weights_only=True)['optimizer_state_dict'])
+
+
     processes = []
     resets = []
     for index in range(opt.num_processes):
         if index == 0:
-            process = mp.Process(target=local_train, args=(index, opt, global_model, optimizer, 0, True))
+            process = mp.Process(target=local_train, args=(index, opt, global_model, optimizer, True))
         else:
             process = mp.Process(target=local_train, args=(index, opt, global_model, optimizer, 0))
         resets.append(0)
@@ -75,8 +72,8 @@ def train(opt):
     # process = mp.Process(target=local_test, args=(opt.num_processes, opt, global_model))
     # process.start()
     # processes.append(process)
-    #resets = opt.num_process_restarts
-    while (resets[0] < opt.num_process_restarts):
+    # resets = opt.num_process_restarts
+    while resets[0] < opt.num_process_restarts:
         for index, process in enumerate(processes):
             if not process.is_alive():
                 resets[index] += 1
@@ -90,6 +87,9 @@ def train(opt):
 
     for process in processes:
         process.join()
+
+
+
 
 
 if __name__ == "__main__":

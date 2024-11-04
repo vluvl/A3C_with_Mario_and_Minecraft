@@ -108,4 +108,4 @@ def create_train_env(world, stage, action_type, output_path=None):
     env = CustomReward(env, monitor)
     env = CustomSkipFrame(env)
     
-    return env, env.observation_space.shape[0], len(actions)
+    return env, env.observation_space.shape[0], 7

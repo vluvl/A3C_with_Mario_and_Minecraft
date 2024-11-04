@@ -1,7 +1,11 @@
+import matplotlib
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 
+font = {#'weight' : 'bold',
+        'size'   : 18}
+matplotlib.rc('font', **font)
 def load_csv(filename):
     fields = ['Step', 'Value']
     data = pd.read_csv(filename, skipinitialspace=True, usecols=fields)

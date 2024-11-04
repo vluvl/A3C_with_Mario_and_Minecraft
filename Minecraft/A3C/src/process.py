@@ -10,7 +10,8 @@ from collections import deque
 from tensorboardX import SummaryWriter
 import timeit
 import logging
-
+from matplotlib import animation
+import matplotlib.pyplot as plt
 
 def local_train(index, opt, global_model, optimizer, reset, save=False):
     torch.manual_seed(123 + index)
@@ -26,7 +27,6 @@ def local_train(index, opt, global_model, optimizer, reset, save=False):
     if opt.use_gpu:
         local_model.cuda()
     local_model.train()
-
     state = env.reset()
 
     state = torch.from_numpy(state.astype("float32"))
@@ -67,7 +67,7 @@ def local_train(index, opt, global_model, optimizer, reset, save=False):
         values = []
         rewards = []
         entropies = []
-        
+        frames = []
         for _ in range(opt.num_local_steps):
             curr_step += 1
             logits, value, h_0, c_0 = local_model(state, h_0, c_0)
@@ -79,7 +79,7 @@ def local_train(index, opt, global_model, optimizer, reset, save=False):
             action = m.sample().item()
             try:
                 state, reward, done, _ = env.step(action)
-
+                frames.append(env.render(mode="rgb_array"))
             except:
                 print("\n//////////////////////////////////////////////////////\n")
                 print("Something went wrong when taking a step on process " + str(
@@ -93,6 +93,7 @@ def local_train(index, opt, global_model, optimizer, reset, save=False):
 
                 if opt.use_gpu:
                     state = state.cuda()
+
 
             state = torch.from_numpy(state)
             if opt.use_gpu:
@@ -125,7 +126,7 @@ def local_train(index, opt, global_model, optimizer, reset, save=False):
 
             if done:
                 break
-
+        save_frames_as_gif(frames,filename=opt.checkpoint + 'mine' + str(curr_episode) + '.gif')
         R = torch.zeros((1, 1), dtype=torch.float)
         if opt.use_gpu:
             R = R.cuda()
@@ -243,22 +244,43 @@ def local_train(index, opt, global_model, optimizer, reset, save=False):
                 print('The code runs for %.2f s ' % (end_time - start_time))
             return
 
+# Source: https://gist.github.com/botforge/64cbb71780e6208172bbf03cd9293553
+def save_frames_as_gif(frames, path='./', filename='gym_animation.gif'):
+
+    #Mess with this to change frame size
+    plt.figure(figsize=(frames[0].shape[1]/10, frames[0].shape[0]/10), dpi=72)
+
+    patch = plt.imshow(frames[0])
+    plt.axis('off')
+
+    def animate(i):
+        patch.set_data(frames[i])
+
+    anim = animation.FuncAnimation(plt.gcf(), animate, frames = len(frames), interval=50)
+    anim.save(path + filename, writer='imagemagick', fps=12)
+
 
 def local_test(index, opt, global_model):
     torch.manual_seed(123 + index)
     env, num_states, num_actions = create_train_env_mine(opt.envName)
     local_model = ActorCritic(num_states, num_actions)
     local_model.eval()
+    file_ = "{}/MineRLParams_check15".format(opt.saved_path)
+    local_model.load_state_dict(torch.load(file_, weights_only=True)['model_state_dict'])
 
-    state = torch.from_numpy(env.reset())
+    state = env.reset()
+
+    state = torch.from_numpy(state.astype("float32"))
+    if opt.use_gpu:
+        state = state.cuda()
     done = True
     curr_step = 0
-    actions = deque(maxlen=opt.max_actions)
+    #actions = deque(maxlen=opt.max_actions)
     total = 0
     while True:
         curr_step += 1
-        if done:
-            local_model.load_state_dict(global_model.state_dict())
+        #if done:
+            #local_model.load_state_dict(global_model.state_dict())
         with torch.no_grad():
             if done:
                 h_0 = torch.zeros((1, 512), dtype=torch.float)
@@ -266,20 +288,25 @@ def local_test(index, opt, global_model):
             else:
                 h_0 = h_0.detach()
                 c_0 = c_0.detach()
+            if opt.use_gpu:
+                h_0 = h_0.cuda()
+                c_0 = c_0.cuda()
 
         logits, value, h_0, c_0 = local_model(state, h_0, c_0)
-        policy = F.softmax(logits, dim=1)
-        action = torch.argmax(policy).item()
+        policy = F.softmax(logits, dim=-1)
+        log_policy = F.log_softmax(logits, dim=-1)
+        entropy = -(policy * log_policy).sum(-1, keepdim=True)
+        m = Categorical(policy)
+        action = m.sample().item()
         state, reward, done, _ = env.step(action)
         total = total + reward
         env.render()
-        actions.append(action)
-        if curr_step > opt.num_global_steps or actions.count(actions[0]) == actions.maxlen:
+
+        if curr_step > opt.num_global_steps:
             done = True
         if done:
             #print("TEST reward: " + str(total))
             total = 0
             curr_step = 0
-            actions.clear()
             state = env.reset()
         state = torch.from_numpy(state)
